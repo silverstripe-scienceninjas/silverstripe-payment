@@ -253,6 +253,12 @@ class DPSAdapter extends Controller{
 	 * @see {http://www.paymentexpress.com/technical_resources/ecommerce_hosted/pxaccess.html#ResultNotification}
 	 */
 	function processDPSHostedResponse(){
+
+		$dpsDirectlyConnecting = 0;
+		if(preg_match('/^PXL1/i', $_SERVER['HTTP_USER_AGENT'])) {
+			$dpsDirectlyConnecting = 1;
+		}
+
 		$pxpay = new PxPay(self::$pxPay_Url, self::$pxPay_Userid, self::$pxPay_Key);
 
 		$enc_hex = $_REQUEST["result"];
@@ -297,6 +303,9 @@ class DPSAdapter extends Controller{
 		} else {
 			Director::redirect(Director::baseURL());
 		}
+		
+		// record the transaction for debugging
+		$this->RecordsResult($rsp, $dpsDirectlyConnecting);
 	}
 
 	protected $httpClient;
