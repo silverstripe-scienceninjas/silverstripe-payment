@@ -41,6 +41,9 @@ class TransactionReport extends SS_Report {
 		return $fields;
 	}
 	
+	/*
+	 * @todo use DataList()->filter() expressions - they're neater.
+	 */
 	function sourceRecords($params, $sort, $limit) {
 
 		$records = RecordedTransactions::get();
@@ -49,7 +52,6 @@ class TransactionReport extends SS_Report {
 		$where[] = "\"RecordedTransactions\".\"Success\" = 1";
 		if (!empty($params['SearchName'])) {
 			$where[] = "\"RecordedTransactions\".\"PersonalDetails\" LIKE '%".$params['SearchName']."%'";
-			$records->where($where);
 		}
 		
 		$startDate = isset($params['StartDate']) ? $params['StartDate'] : null;
@@ -69,7 +71,7 @@ class TransactionReport extends SS_Report {
 		}
 		if($endDate) {
 			if(count(explode('/', $endDate)) == 3) {
-				list($d,$m,$y) = explode('/', $endDate);
+				list($d, $m, $y) = explode('/', $endDate);
 				$endTime = $endTime ? $endTime : '23:59:59';
 				$endDate = date('Y-m-d H:i:s', strtotime("$y-$m-$d {$endTime}"));
 			}
@@ -77,8 +79,7 @@ class TransactionReport extends SS_Report {
 				$endDate = null;
 			}
 		}
-		
-		$where = null;
+
 		if ($startDate && $endDate) {
 			$where[] = "\"RecordedTransactions\".\"LastEdited\" >= '".Convert::raw2sql($startDate)."' AND \"RecordedTransactions\".\"LastEdited\" <= '".Convert::raw2sql($endDate)."'";
 		}
@@ -89,7 +90,7 @@ class TransactionReport extends SS_Report {
 			$where[] = "\"RecordedTransactions\".\"LastEdited\" <= '".Convert::raw2sql($endDate)."'";
 		}
 		else {
-			$where[] = "\"RecordedTransactions\".\"LastEdited\" >= '".SS_Datetime::now()->URLDate()."'";
+			$where[] = "\"RecordedTransactions\".\"LastEdited\" >= '".SS_Datetime::now()->Rfc2822()."'";
 		}
 		
 		// Default sort to Date published descending
@@ -104,11 +105,14 @@ class TransactionReport extends SS_Report {
 			if($field == 'AbsoluteLink') {
 				$sort = '"URLSegment" ' . $direction;
 			}
-			elseif($field == '"Subsite"."Title"') {
+			if($field == '"Subsite"."Title"') {
 				$records->leftJoin('Subsite', '"Subsite"."ID" = "SiteTree"."SubsiteID"');
 			}
-			$records->sort($sort);
 		}
+
+		$records->where($where);
+		$records->sort($sort);
+		$records->limit($limit['limit'],$limit['start']);
 		return $records;
 	}
 	
